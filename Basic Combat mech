@@ -1,0 +1,223 @@
+using System;
+using System.Collections.Generic;
+
+public class FoeType
+{
+	public string typeName;
+	public bool isMagick;
+	public double regenPower;
+	public int typeSize;
+	public FoeType(string startTypeName = "Normal", bool spellz = false, double healzz = 0.0, int bigNess = 1)
+	{
+		typeName = startTypeName;
+		isMagick = spellz;
+		regenPower = healzz;
+		typeSize = bigNess;
+	}
+// List of Types of Foes
+	public static FoeType normal = new FoeType("Normal", false);
+	public static FoeType bigNormal = new FoeType("Normal (But Large)", false, 0.0, 2);
+	public static FoeType unDead = new FoeType("Undead", true, 0.1, 1);
+	
+	public class Foe
+	{
+		// Property to store health points (hp) of the foe
+		public int hp;
+		public string name;
+		public int def;
+		public int str;
+		public FoeType fighterType;
+		// Constructor to initialize the foe's stats
+		//create foes Name, HP, Def, Str
+		public Foe(string startName, int health = 1, int defense = 0, int strength = 0, FoeType fightType = null)
+		{
+			name = startName;
+			hp = health;
+			def = defense;
+			str = strength;
+			fighterType = fightType ?? FoeType.normal;
+		}
+	}
+
+
+	class Program
+	{
+		static void PhysAtt(Foe attacker, Foe defender)
+		{				
+			Random rand = new Random();
+			Random dRand = new Random();
+			string[] normalGuyAttacks = new string[]
+				{
+					$"{defender.name} staggers back after the brutal blow from {attacker.name}!",
+					$"{defender.name} grunts in pain as the attack from {attacker.name} lands!",
+					$"{attacker.name}'s strike hits {defender.name} square in the chest!",
+					$"{defender.name} is knocked off balance by the force of {attacker.name}'s attack!",
+					$"{attacker.name} lunges and {defender.name} reels from the impact of the hit!"};
+			string[] bigGuyAttacks = new string[]				{
+					$"{defender.name} staggers back after the brutal blow from {attacker.name}!",
+					$"{defender.name} gets scraped up while dodging an enormous attack!",
+					$"{attacker.name}'s smashes {defender.name} with a devastating blow!",
+					$"{defender.name} is knocked off balance by the force of {attacker.name}'s attack!",
+					$"{attacker.name} shouts so loudly that {defender.name} feel's their bones shudder!"};
+			string[] descStrikebackNormal = new string[]
+				{
+					$"{attacker.name} staggers back after the brutal blow from {defender.name}!",
+					$"{attacker.name} grunts in pain as the attack from {defender.name} lands!",
+					$"{defender.name}'s strike hits {attacker.name} square in the chest!",
+					$"{attacker.name} is knocked off balance by the force of {defender.name}'s attack!",
+					$"{defender.name} lunges and {attacker.name} reels from the impact of the hit!"};
+
+			goto FirstStrike;
+			FirstStrike:
+				int damage = (attacker.str - defender.def);
+			if (damage < 0)
+				damage = 0;
+			defender.hp = (defender.hp - damage);
+			if (defender.hp < 0)
+				defender.hp = 0;
+			goto AttackDesc;
+			SecondStrike:
+				int damageBack = (defender.str - attacker.def);
+			if (damageBack < 0)
+				damageBack = 0;
+			attacker.hp = (attacker.hp - damageBack);
+			if (attacker.hp < 0)
+				attacker.hp = 0;
+			goto DefendDesc;
+			AttackDesc:
+			// Randomly select a description from the list
+			string randomDescription = normalGuyAttacks[rand.Next(normalGuyAttacks.Length)];
+			// Print the descriptive text and the updated HP of the defender
+			Console.WriteLine(randomDescription);
+			goto SecondStrike;
+			DefendDesc:
+
+			// Randomly select a description from the list
+
+			string randomDefDescription = descStrikebackNormal[dRand.Next(descStrikebackNormal.Length)];
+			// Print the descriptive text and the updated HP of the defender
+			Console.WriteLine(randomDefDescription);
+			goto WrapUp;
+			WrapUp:
+				Console.WriteLine($"{defender.name} has their hp reduced to {defender.hp}, and {attacker.name} is at {attacker.hp} hp ");
+		}
+
+		static void Main()
+		{
+			// Creating combatants
+			Foe firstFighter = null;
+			Foe secondFighter = null;
+			Foe goblin = new Foe("Goblin", 7, 0, 2, normal);
+			Foe skeleton = new Foe("Skeleton", 4, 1, 2, unDead);
+			Foe giant = new Foe("Giant", 14, 1, 5, bigNormal);
+			Foe zombie = new Foe("Zombie", 5, 0, 1, unDead);
+			Dictionary<string, Foe> foes = new Dictionary<string, Foe>
+			{
+				{
+					goblin.name.ToLower(),
+					goblin
+				}, // Store lowercase name
+				{
+					skeleton.name.ToLower(),
+					skeleton
+				}, // Store lowercase name
+				{
+					giant.name.ToLower(),
+					giant
+				},
+				{
+					zombie.name.ToLower(),
+					zombie
+				},
+			};
+			// A looping combat
+			FightChoose:
+				Console.WriteLine("Enter the name of your first fighter (we have Goblin or Skeleton). Arternatively, you could type 'pussout' to avoid futher bloodshed: ");
+			Asking:
+			
+				if (firstFighter == null)
+				{
+					string fightAnswer = Console.ReadLine()?.Trim(); // Trim any leading/trailing spaces
+					// Check if the input is valid (not null or empty)
+					if (string.IsNullOrEmpty(fightAnswer))
+					{
+						Console.WriteLine("No input provided. Please enter a valid foe name.");
+						return; // Exit if no valid input
+					}
+
+					if (foes.ContainsKey(fightAnswer.ToLower()))
+					{
+						firstFighter = foes[fightAnswer.ToLower()];
+						Console.Write($"Your pal {firstFighter.name} is here.");
+						goto Asking;
+					}
+					if (fightAnswer == "pussout")
+						return;
+					else
+					{
+						Console.WriteLine("That's not a fighter");
+						goto Asking;
+					}
+				}
+				else
+				{ //Repeat the process but for secondFighter
+					string fightAnswer2 = Console.ReadLine()?.Trim(); // Trim any leading/trailing spaces
+					{
+						if (string.IsNullOrEmpty(fightAnswer2))
+						{
+							Console.WriteLine("No input provided. Please enter a valid foe name.");
+							return; // Exit if no valid input
+						}
+
+						if (foes.ContainsKey(fightAnswer2.ToLower()))
+						{
+							secondFighter = foes[fightAnswer2.ToLower()];
+							Console.Write($"Your amigo {secondFighter.name} is here as well.");
+							goto Battle;
+						}
+						else
+						{
+							Console.WriteLine("That's not a fighter");
+							goto Asking;
+						}
+					}
+
+					Battle:
+						Console.WriteLine($"Type fight to see the {firstFighter.name} attack the {secondFighter.name}!");
+					string response = Console.ReadLine();
+					if (response != "fight")
+						Console.Write("Oh Come on! let them fight! ");
+					else
+						PhysAtt(firstFighter, secondFighter);
+					if (secondFighter.hp != 0 && firstFighter.hp != 0)
+					{
+						goto Battle;
+					}
+
+					if (secondFighter.hp == 0 && firstFighter.hp != 0)
+					{
+						Console.WriteLine($"Oh shit the {secondFighter.name} died! ");
+						firstFighter = null;
+						secondFighter = null;
+						goto FightChoose;
+					}
+
+					if (firstFighter.hp == 0 && secondFighter.hp != 0)
+					{
+						Console.WriteLine($"Oh shit the {firstFighter.name} died! ");
+						firstFighter = null;
+						secondFighter = null;
+						goto FightChoose;
+					}
+
+					if (secondFighter.hp == 0 && firstFighter.hp == 0)
+					{
+						Console.WriteLine($"A little surprising perhaps, but the {firstFighter.name} and the {secondFighter.name} killed eachother at the same time!");
+						firstFighter = null;
+						secondFighter = null;
+						goto FightChoose;
+					}
+				}
+		}
+	}
+}
