@@ -7,7 +7,7 @@ public class FoeType
     public bool isMagick;
     public double regenPower;
     public int typeSize;
-    
+
     public FoeType(string startTypeName = "Normal", bool spellz = false, double healzz = 0.0, int bigNess = 1)
     {
         typeName = startTypeName;
@@ -29,7 +29,7 @@ public class Foe
     public int def;
     public int str;
     public FoeType fighterType;
-    
+
     public Foe(string startName, int health = 1, int defense = 0, int strength = 0, FoeType fightType = null)
     {
         name = startName;
@@ -44,67 +44,88 @@ class Program
 {
     static void Main()
     {
-        Foe firstFighter = null;
-        Foe secondFighter = null;
-        
-        Foe goblin = new Foe("Goblin", 7, 0, 2, FoeType.normal);
-        Foe skeleton = new Foe("Skeleton", 4, 1, 2, FoeType.unDead);
-        Foe giant = new Foe("Giant", 14, 1, 5, FoeType.bigNormal);
-        Foe zombie = new Foe("Zombie", 5, 0, 1, FoeType.unDead);
-
-        Dictionary<string, Foe> foes = new Dictionary<string, Foe>
+        while (true)
         {
-            { goblin.name.ToLower(), goblin },
-            { skeleton.name.ToLower(), skeleton },
-            { giant.name.ToLower(), giant },
-            { zombie.name.ToLower(), zombie },
-        };
+            // Start the game loop
+            Foe firstFighter = null;
+            Foe secondFighter = null;
 
-        FightChoose:
-        Console.WriteLine("Enter the name of your first fighter (Goblin, Skeleton, Giant, Zombie). Or type 'pussout' to avoid further bloodshed: ");
-        
-        firstFighter = SelectFighter(foes);
-        if (firstFighter == null) return;
+            Foe goblin = new Foe("Goblin", 7, 0, 2, FoeType.normal);
+            Foe skeleton = new Foe("Skeleton", 4, 1, 2, FoeType.unDead);
+            Foe giant = new Foe("Giant", 14, 1, 5, FoeType.bigNormal);
+            Foe zombie = new Foe("Zombie", 5, 0, 1, FoeType.unDead);
 
-        secondFighter = SelectFighter(foes);
-        if (secondFighter == null) return;
+            Dictionary<string, Foe> foes = new Dictionary<string, Foe>
+            {
+                { goblin.name.ToLower(), goblin },
+                { skeleton.name.ToLower(), skeleton },
+                { giant.name.ToLower(), giant },
+                { zombie.name.ToLower(), zombie },
+            };
 
-        Battle(firstFighter, secondFighter, foes);
+            // Prompt the user to start the game
+            Console.WriteLine("Welcome to the Battle Arena!");
+            firstFighter = SelectFighter(foes);
+            if (firstFighter == null) return;
+
+            secondFighter = SelectFighter(foes);
+            if (secondFighter == null) return;
+
+            Battle(firstFighter, secondFighter, foes);
+        }
     }
 
     static Foe SelectFighter(Dictionary<string, Foe> foes)
     {
-        string fightAnswer = Console.ReadLine()?.Trim().ToLower();
-        if (fightAnswer == "pussout") return null;
-
-        if (foes.ContainsKey(fightAnswer))
+        string fightAnswer = null;
+        // Loop to ensure the user provides valid input
+        while (true)
         {
-            Foe selectedFoe = foes[fightAnswer];
-            Console.WriteLine($"Your fighter {selectedFoe.name} is selected!");
-            return selectedFoe;
-        }
+            Console.WriteLine("Enter the name of your fighter (Goblin, Skeleton, Giant, Zombie), or type 'pussout' to quit:");
+            fightAnswer = Console.ReadLine()?.Trim().ToLower();
 
-        Console.WriteLine("That's not a valid fighter. Try again.");
-        return null;
+            if (fightAnswer == "pussout") return null; // Exit if 'pussout' is chosen
+
+            if (foes.ContainsKey(fightAnswer))
+            {
+                Foe selectedFoe = foes[fightAnswer];
+                Console.WriteLine($"You selected {selectedFoe.name}!");
+                return selectedFoe;
+            }
+            else
+            {
+                Console.WriteLine("Invalid fighter name. Please try again.");
+            }
+        }
     }
 
     static void Battle(Foe firstFighter, Foe secondFighter, Dictionary<string, Foe> foes)
     {
+        // Continue the battle loop until one of the fighters dies
         while (firstFighter.hp > 0 && secondFighter.hp > 0)
         {
-            Console.WriteLine($"Type 'fight' to start the battle between {firstFighter.name} and {secondFighter.name}!");
-            string response = Console.ReadLine()?.Trim().ToLower();
+            Console.WriteLine($"It's time to fight! {firstFighter.name} vs {secondFighter.name}");
+            Console.WriteLine("Type 'fight' to start the battle!");
 
+            string response = Console.ReadLine()?.Trim().ToLower();
             if (response != "fight")
             {
-                Console.WriteLine("Oh, come on! Let them fight!");
+                Console.WriteLine("Come on! Let them fight!");
                 continue;
             }
 
+            // First fighter attacks second fighter
             PerformAttack(firstFighter, secondFighter);
 
             if (secondFighter.hp > 0)
+            {
+                // Second fighter attacks first fighter if still alive
                 PerformAttack(secondFighter, firstFighter);
+            }
+
+            // Print current HP
+            Console.WriteLine($"{firstFighter.name} has {firstFighter.hp} HP left.");
+            Console.WriteLine($"{secondFighter.name} has {secondFighter.hp} HP left.");
 
             if (firstFighter.hp == 0)
             {
@@ -117,6 +138,9 @@ class Program
                 break;
             }
         }
+
+        // After the battle ends, reset the game state
+        ResetGameState();
     }
 
     static void PerformAttack(Foe attacker, Foe defender)
@@ -124,17 +148,9 @@ class Program
         int damage = CalculateDamage(attacker, defender);
         defender.hp = Math.Max(defender.hp - damage, 0);
 
+        // Generate and print the attack description for the attacker
         string attackDescription = GenerateAttackDescription(attacker, defender);
         Console.WriteLine(attackDescription);
-
-        if (defender.hp > 0)
-        {
-            string counterDescription = GenerateCounterDescription(defender, attacker);
-            Console.WriteLine(counterDescription);
-        }
-
-        Console.WriteLine($"{defender.name} has {defender.hp} HP left.");
-        Console.WriteLine($"{attacker.name} has {attacker.hp} HP left.");
     }
 
     static int CalculateDamage(Foe attacker, Foe defender)
@@ -146,7 +162,7 @@ class Program
     static string GenerateAttackDescription(Foe attacker, Foe defender)
     {
         Random rand = new Random();
-        string[] normalGuyAttacks = new string[]
+        string[] attackDescriptions = new string[]
         {
             $"{defender.name} staggers back after the brutal blow from {attacker.name}!",
             $"{defender.name} grunts in pain as the attack from {attacker.name} lands!",
@@ -155,21 +171,12 @@ class Program
             $"{attacker.name} lunges and {defender.name} reels from the impact of the hit!"
         };
 
-        return normalGuyAttacks[rand.Next(normalGuyAttacks.Length)];
+        return attackDescriptions[rand.Next(attackDescriptions.Length)];
     }
 
-    static string GenerateCounterDescription(Foe defender, Foe attacker)
+    static void ResetGameState()
     {
-        Random rand = new Random();
-        string[] descStrikebackNormal = new string[]
-        {
-            $"{attacker.name} staggers back after the brutal blow from {defender.name}!",
-            $"{attacker.name} grunts in pain as the attack from {defender.name} lands!",
-            $"{defender.name}'s strike hits {attacker.name} square in the chest!",
-            $"{attacker.name} is knocked off balance by the force of {defender.name}'s attack!",
-            $"{defender.name} lunges and {attacker.name} reels from the impact of the hit!"
-        };
-
-        return descStrikebackNormal[rand.Next(descStrikebackNormal.Length)];
+        // Prompt the user to choose fighters again after the battle ends
+        Console.WriteLine("The battle is over. Returning to the fighter selection.");
     }
 }
