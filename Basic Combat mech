@@ -28,15 +28,34 @@ public class Foe
     public string name;
     public int def;
     public int str;
+    public int level;
+    public int xp;
     public FoeType fighterType;
 
-    public Foe(string startName, int health = 1, int defense = 0, int strength = 0, FoeType fightType = null)
+    public Foe(string startName, int health = 1, int defense = 0, int strength = 0, FoeType fightType = null, int level = 1, int xp = 0)
     {
         name = startName;
         hp = health;
         def = defense;
         str = strength;
         fighterType = fightType ?? FoeType.normal;
+        this.level = level;
+        this.xp = xp;
+    }
+
+    // Gain experience points and level up if necessary
+    public void GainExperience(int xpGained)
+    {
+        xp += xpGained;
+        while (xp >= level * 10) // For simplicity, level up every 10 XP
+        {
+            xp -= level * 10;
+            level++;
+            str += 2; // Increase strength
+            def += 1; // Increase defense
+            hp += 5;  // Increase health
+            Console.WriteLine($"{name} leveled up to level {level}!");
+        }
     }
 }
 
@@ -46,49 +65,67 @@ class Program
     {
         while (true)
         {
-            // Start the game loop
-            Foe firstFighter = null;
-            Foe secondFighter = null;
-
+            // Stable Management: Create a stable of player's combatants
+            List<Foe> stable = new List<Foe>();
             Foe goblin = new Foe("Goblin", 7, 0, 2, FoeType.normal);
             Foe skeleton = new Foe("Skeleton", 4, 1, 2, FoeType.unDead);
             Foe giant = new Foe("Giant", 14, 1, 5, FoeType.bigNormal);
             Foe zombie = new Foe("Zombie", 5, 0, 1, FoeType.unDead);
 
-            Dictionary<string, Foe> foes = new Dictionary<string, Foe>
-            {
-                { goblin.name.ToLower(), goblin },
-                { skeleton.name.ToLower(), skeleton },
-                { giant.name.ToLower(), giant },
-                { zombie.name.ToLower(), zombie },
-            };
+            stable.Add(goblin);
+            stable.Add(skeleton);
+            stable.Add(giant);
+            stable.Add(zombie);
+
+            // Non-player stable: NPC Fighters with hidden stats
+            List<Foe> npcStable = new List<Foe>();
+            Foe npcGoblin = new Foe("NPC Goblin", 8, 1, 3, FoeType.normal);
+            Foe npcSkeleton = new Foe("NPC Skeleton", 5, 2, 3, FoeType.unDead);
+            Foe npcGiant = new Foe("NPC Giant", 18, 2, 6, FoeType.bigNormal);
+            Foe npcZombie = new Foe("NPC Zombie", 6, 1, 2, FoeType.unDead);
+
+            npcStable.Add(npcGoblin);
+            npcStable.Add(npcSkeleton);
+            npcStable.Add(npcGiant);
+            npcStable.Add(npcZombie);
 
             // Prompt the user to start the game
             Console.WriteLine("Welcome to the Battle Arena!");
-            firstFighter = SelectFighter(foes);
+            ViewStable(stable);
+
+            Foe firstFighter = SelectFighter(stable);
             if (firstFighter == null) return;
 
-            secondFighter = SelectFighter(foes);
+            Foe secondFighter = SelectNpcFighter(npcStable);
             if (secondFighter == null) return;
 
-            Battle(firstFighter, secondFighter, foes);
+            Battle(firstFighter, secondFighter, stable, npcStable);
         }
     }
 
-    static Foe SelectFighter(Dictionary<string, Foe> foes)
+    static void ViewStable(List<Foe> stable)
+    {
+        Console.WriteLine("Your stable of fighters:");
+        foreach (var fighter in stable)
+        {
+            Console.WriteLine($"{fighter.name} (Level {fighter.level})");
+        }
+    }
+
+    static Foe SelectFighter(List<Foe> stable)
     {
         string fightAnswer = null;
         // Loop to ensure the user provides valid input
         while (true)
         {
-            Console.WriteLine("Enter the name of your fighter (Goblin, Skeleton, Giant, Zombie), or type 'pussout' to quit:");
+            Console.WriteLine("Enter the name of your fighter from your stable, or type 'pussout' to quit:");
             fightAnswer = Console.ReadLine()?.Trim().ToLower();
 
             if (fightAnswer == "pussout") return null; // Exit if 'pussout' is chosen
 
-            if (foes.ContainsKey(fightAnswer))
+            Foe selectedFoe = stable.Find(f => f.name.ToLower() == fightAnswer);
+            if (selectedFoe != null)
             {
-                Foe selectedFoe = foes[fightAnswer];
                 Console.WriteLine($"You selected {selectedFoe.name}!");
                 return selectedFoe;
             }
@@ -99,7 +136,17 @@ class Program
         }
     }
 
-    static void Battle(Foe firstFighter, Foe secondFighter, Dictionary<string, Foe> foes)
+    static Foe SelectNpcFighter(List<Foe> npcStable)
+    {
+        // Randomly select an NPC fighter from the non-player stable
+        Random rand = new Random();
+        int index = rand.Next(npcStable.Count);
+        Foe selectedNpcFoe = npcStable[index];
+        Console.WriteLine($"You will battle against {selectedNpcFoe.name}!");
+        return selectedNpcFoe;
+    }
+
+    static void Battle(Foe firstFighter, Foe secondFighter, List<Foe> stable, List<Foe> npcStable)
     {
         // Continue the battle loop until one of the fighters dies
         while (firstFighter.hp > 0 && secondFighter.hp > 0)
@@ -130,17 +177,19 @@ class Program
             if (firstFighter.hp == 0)
             {
                 Console.WriteLine($"{firstFighter.name} has been defeated!");
+                secondFighter.GainExperience(10); // Winner gains XP
                 break;
             }
             else if (secondFighter.hp == 0)
             {
                 Console.WriteLine($"{secondFighter.name} has been defeated!");
+                firstFighter.GainExperience(10); // Winner gains XP
                 break;
             }
         }
 
         // After the battle ends, reset the game state
-        ResetGameState();
+        ResetGameState(stable);
     }
 
     static void PerformAttack(Foe attacker, Foe defender)
@@ -148,7 +197,7 @@ class Program
         int damage = CalculateDamage(attacker, defender);
         defender.hp = Math.Max(defender.hp - damage, 0);
 
-        // Generate and print the attack description for the attacker
+        // Generate and print the attack description based on the FoeType
         string attackDescription = GenerateAttackDescription(attacker, defender);
         Console.WriteLine(attackDescription);
     }
@@ -162,7 +211,7 @@ class Program
     static string GenerateAttackDescription(Foe attacker, Foe defender)
     {
         Random rand = new Random();
-        string[] attackDescriptions = new string[]
+        string[] normalAttackDescriptions = new string[]
         {
             $"{defender.name} staggers back after the brutal blow from {attacker.name}!",
             $"{defender.name} grunts in pain as the attack from {attacker.name} lands!",
@@ -171,12 +220,33 @@ class Program
             $"{attacker.name} lunges and {defender.name} reels from the impact of the hit!"
         };
 
-        return attackDescriptions[rand.Next(attackDescriptions.Length)];
+        string[] undeadAttackDescriptions = new string[]
+        {
+            $"{defender.name} lets out a horrifying shriek as the strike from {attacker.name} lands!",
+            $"{attacker.name} strikes {defender.name} with a heavy blow that shakes the bones!",
+            $"{defender.name} stumbles but rises, the attack barely affecting its undead form!",
+            $"{attacker.name} hits {defender.name} with a force that rattles its bones!"
+        };
+
+        string[] bigNormalAttackDescriptions = new string[]
+        {
+            $"{defender.name} staggers back after the immense blow from {attacker.name}!",
+            $"{defender.name} is sent crashing to the ground by {attacker.name}'s powerful strike!",
+            $"{attacker.name} swings wildly, hitting {defender.name} with devastating force!"
+        };
+
+        // Choose description based on FoeType
+        string[] selectedDescriptions = attacker.fighterType == FoeType.unDead ? undeadAttackDescriptions :
+                                        attacker.fighterType == FoeType.bigNormal ? bigNormalAttackDescriptions :
+                                        normalAttackDescriptions;
+
+        return selectedDescriptions[rand.Next(selectedDescriptions.Length)];
     }
 
-    static void ResetGameState()
+    static void ResetGameState(List<Foe> stable)
     {
         // Prompt the user to choose fighters again after the battle ends
         Console.WriteLine("The battle is over. Returning to the fighter selection.");
+        ViewStable(stable);
     }
 }
